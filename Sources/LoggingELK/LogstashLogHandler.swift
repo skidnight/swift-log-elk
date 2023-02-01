@@ -59,6 +59,10 @@ public struct LogstashLogHandler: LogHandler {
     public var logLevel: Logger.Level = .info
     /// Holds the `Logger.Metadata` of the `LogstashLogHandler`
     public var metadata = Logger.Metadata()
+    
+    /// Holds the authorization Firebase token
+    static var authorizationToken: String?;
+    
     /// Convenience subscript to get and set `Logger.Metadata`
     public subscript(metadataKey metadataKey: String) -> Logger.Metadata.Value? {
         get {
@@ -101,6 +105,7 @@ public struct LogstashLogHandler: LogHandler {
         Self.hostname = hostname
         Self.port = port
         Self.useHTTPS = useHTTPS
+        Self.authorizationToken = "";
         Self.eventLoopGroup = eventLoopGroup
         Self.backgroundActivityLogger = backgroundActivityLogger
         Self.uploadInterval = uploadInterval
@@ -132,6 +137,10 @@ public struct LogstashLogHandler: LogHandler {
             
             fatalError(Error.backgroundActivityLoggerBackendError.rawValue)
         }
+    }
+    
+    public static func setAuthorizationtoken(token: String) {
+        Self.authorizationToken = token;
     }
 
     /// The main log function of the `LogstashLogHandler`
@@ -256,7 +265,7 @@ public struct LogstashLogHandler: LogHandler {
                     "conditionalLockState": .string("\(Self.byteBufferLock.value)")
                 ]
             )
-            
+            Self.byteBufferLock.unlock()
             return
         }
         

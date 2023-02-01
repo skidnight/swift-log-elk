@@ -14,17 +14,17 @@ extension LogstashLogHandler {
     /// A struct used to encode the `Logger.Level`, `Logger.Message`, `Logger.Metadata`, and a timestamp
     /// which is then sent to Logstash
     struct LogstashHTTPBody: Codable {
-        let timestamp: String
-        let label: String
-        let loglevel: Logger.Level
+        //let timestamp: String
+        //let label: String
+        //let loglevel: Logger.Level
         let message: Logger.Message
-        let metadata: Logger.Metadata
+        //let metadata: Logger.Metadata
     }
 
     /// The `JSONEncoder` used to encode the `LogstashHTTPBody` to JSON
     private static let jsonEncoder: JSONEncoder = {
         let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
+        encoder.outputFormatting = [.sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
         encoder.dataEncodingStrategy = .base64
         encoder.nonConformingFloatEncodingStrategy = .convertToString(
@@ -48,24 +48,25 @@ extension LogstashLogHandler {
         var httpRequest: HTTPClient.Request
 
         do {
-            httpRequest = try HTTPClient.Request(url: "\(useHTTPS ? "https" : "http")://\(hostname):\(port)", method: .POST)
+            httpRequest = try HTTPClient.Request(url: "\(useHTTPS ? "https" : "http")://\(hostname)", method: .POST)
         } catch {
             fatalError("Logstash HTTP Request couldn't be created. Check if the hostname and port are valid. \(error)")
         }
 
         // Set headers that always stay consistent over all requests
-        httpRequest.headers.add(name: "Content-Type", value: "application/json")
-        httpRequest.headers.add(name: "Accept", value: "application/json")
+        httpRequest.headers.add(name: "Content-Type", value: "application/x-ndjson")
+        //httpRequest.headers.add(name: "Accept", value: "application/json")
+        httpRequest.headers.add(name: "Authorization", value: "Bearer " + Self.authorizationToken!)
         // Keep-alive header to keep the connection open
-        httpRequest.headers.add(name: "Connection", value: "keep-alive")
+        /*httpRequest.headers.add(name: "Connection", value: "keep-alive")
         if uploadInterval <= TimeAmount.seconds(10) {
             httpRequest.headers.add(name: "Keep-Alive",
                                     value: "timeout=\(Int((uploadInterval.rawSeconds * 3).rounded(.toNearestOrAwayFromZero))), max=100")
         } else {
             httpRequest.headers.add(name: "Keep-Alive",
                                     value: "timeout=30, max=100")
-        }
-
+        }*/
+        
         return httpRequest
     }
 
@@ -76,14 +77,13 @@ extension LogstashLogHandler {
                        metadata: Logger.Metadata) -> Data? {
         do {
             let bodyObject = LogstashHTTPBody(
-                timestamp: self.timestamp,
-                label: self.label,
-                loglevel: level,
-                message: message,
-                metadata: metadata
+                //timestamp: self.timestamp,
+                //label: self.label,
+                //loglevel: level,
+                message: message
+                //metadata: metadata
             )
-
-            return try Self.jsonEncoder.encode(bodyObject)
+            return Data(message.description.utf8)
         } catch {
             return nil
         }

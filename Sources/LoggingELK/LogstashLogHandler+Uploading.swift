@@ -53,10 +53,13 @@ extension LogstashLogHandler {
         // If total byte buffer size is exceeded, wait until the size is decreased again
         if totalByteBufferSize! + Self.byteBuffer!.capacity > maximumTotalLogStorageSize {
             Self.semaphoreCounter -= 1
-            Self.semaphore.wait()
+            let ts:timespec = timespec(tv_sec: 5, tv_nsec: 0);
+            Self.semaphore.wait(wallTimeout: .init(timespec: ts))
         }
         
-        Self.byteBufferLock.lock()
+        guard Self.byteBufferLock.lock(whenValue: false, timeoutSeconds: TimeAmount.seconds(3).rawSeconds) else {
+            return;
+        }
         
         totalByteBufferSize! += Self.byteBuffer!.capacity
         
@@ -124,7 +127,7 @@ extension LogstashLogHandler {
                     }
                 }
                 
-                Self.byteBufferLock.lock()
+                Self.byteBufferLock.lock(whenValue: false, timeoutSeconds: TimeAmount.seconds(5).rawSeconds)
                 
                 // Once all HTTP requests are completed, signal that new memory space is available
                 if Self.totalByteBufferSize! <= maximumTotalLogStorageSize {
